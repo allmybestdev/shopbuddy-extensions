@@ -1,0 +1,107 @@
+console.log("This is a popup!111")
+
+document.addEventListener('DOMContentLoaded', function() {
+    const selectElementButton = document.getElementById('selectElement');
+    const selectedInfoDiv = document.getElementById('selectedInfo');
+    const elementInfoPre = document.getElementById('elementInfo');
+    
+    selectElementButton.addEventListener('click', function() {
+      // 현재 활성화된 탭에 스크립트 주입
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        chrome.scripting.executeScript({
+          target: {tabId: tabs[0].id},
+          function: startElementSelection
+        });
+      });
+      
+      // 팝업 창 닫기 (선택 모드로 전환)
+      window.close();
+    });
+  });
+  
+  // 페이지에 주입될 함수
+  function startElementSelection() {
+    // 이미 존재하는 하이라이트 요소 제거
+    const existingHighlight = document.getElementById('extension-element-highlight');
+    if (existingHighlight) {
+      document.body.removeChild(existingHighlight);
+    }
+    
+    // 하이라이트 요소 생성
+    const highlightElement = document.createElement('div');
+    highlightElement.id = 'extension-element-highlight';
+    highlightElement.style.position = 'absolute';
+    highlightElement.style.border = '2px solid red';
+    highlightElement.style.pointerEvents = 'none';
+    highlightElement.style.zIndex = '10000';
+    highlightElement.style.boxSizing = 'border-box';
+    document.body.appendChild(highlightElement);
+    
+    // 마우스 이동 이벤트 리스너
+    document.addEventListener('mousemove', highlightElementUnderMouse);
+    
+    // 클릭 이벤트 리스너 (요소 선택)
+    document.addEventListener('click', selectElement);
+    
+    // 마우스 이동 시 요소 하이라이트
+    function highlightElementUnderMouse(e) {
+      e.preventDefault();
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      if (element && element !== highlightElement) {
+        const rect = element.getBoundingClientRect();
+        highlightElement.style.top = (window.scrollY + rect.top) + 'px';
+        highlightElement.style.left = (window.scrollX + rect.left) + 'px';
+        highlightElement.style.width = rect.width + 'px';
+        highlightElement.style.height = rect.height + 'px';
+      }
+    }
+    
+    // 요소 선택 시 처리
+    function selectElement(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // 이벤트 리스너 제거
+      document.removeEventListener('mousemove', highlightElementUnderMouse);
+      document.removeEventListener('click', selectElement);
+      
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      if (element) {
+        // 선택된 요소 정보 수집
+        const elementInfo = {
+          tagName: element.tagName,
+          id: element.id,
+          className: element.className,
+          text: element.textContent.trim().substring(0, 50) + (element.textContent.length > 50 ? '...' : ''),
+          rect: {
+            top: element.getBoundingClientRect().top,
+            left: element.getBoundingClientRect().left,
+            width: element.getBoundingClientRect().width,
+            height: element.getBoundingClientRect().height
+          }
+        };
+        
+        // 확장 프로그램에 정보 전송
+        chrome.runtime.sendMessage({
+          action: 'elementSelected',
+          elementInfo: elementInfo
+        });
+      }
+    }
+  }
+
+    // popup.js 파일에 추가
+   // 저장된 요소 정보 확인 및 표시
+   chrome.storage.local.get('selectedElement', function(data) {
+    if (data.selectedElement) {
+      const selectedInfoDiv = document.getElementById('selectedInfo');
+      const elementInfoPre = document.getElementById('elementInfo');
+      
+      // 정보 표시
+      selectedInfoDiv.style.display = 'block';
+      elementInfoPre.textContent = JSON.stringify(data.selectedElement, null, 2);
+      
+      // 사용 후 정보 삭제
+      chrome.storage.local.remove('selectedElement');
+    }
+  });

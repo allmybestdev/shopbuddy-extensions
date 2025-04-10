@@ -18,8 +18,7 @@ chrome.runtime.onMessage.addListener(function(
    console.log(message) 
   if (message.action === 'elementSelected') {
     // 선택된 요소 정보를 저장하거나 처리
-    chrome.storage.local.set({selectedElement: message.elementInfo});
-    chrome.storage.local.set({selectedElementType: message.type});
+    chrome.storage.local.set({[message.type]: message.elementInfo});
     
     // 팝업을 다시 열어 정보 표시
     chrome.action.openPopup();
@@ -39,6 +38,7 @@ chrome.runtime.onMessage.addListener(function(
   }
 
 });
+
 
 
 

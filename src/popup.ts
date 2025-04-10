@@ -41,108 +41,65 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// popup.html 에서 버튼 클릭시 이벤트 처리
+// 공통 함수 추출
+function injectElementSelectionScript(elementType: string): void {
+
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs: chrome.tabs.Tab[]): void 
+  {
+    if (tabs[0].id) {
+      chrome.scripting.executeScript({
+        target: {tabId: tabs[0].id},
+        func: startElementSelection,
+        args: [elementType]
+      });
+    }
+  });
+  window.close();
+
+}
+
 document.addEventListener('DOMContentLoaded', function(): void {
   const selectElement = document.getElementById('selectElement') as HTMLButtonElement;
   const selectElement_sellPrice = document.getElementById('selectElement_sellPrice') as HTMLButtonElement;
   
-
-  selectElement.addEventListener('click', function(): void {
-    // 현재 활성화된 탭에 스크립트 주입
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs: chrome.tabs.Tab[]): void {
-      if (tabs[0].id) {
-        chrome.scripting.executeScript({
-          target: {tabId: tabs[0].id},
-          func: startElementSelection,
-          args: ['prdNm']
-        });
-      }
-    });
-    // 팝업 창 닫기 (선택 모드로 전환)
-    window.close();
-  });
-
-  selectElement_sellPrice.addEventListener('click', function(): void {
-    // 현재 활성화된 탭에 스크립트 주입
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs: chrome.tabs.Tab[]): void {
-      if (tabs[0].id) {
-        chrome.scripting.executeScript({target: {tabId: tabs[0].id},func: startElementSelection,args: ['sellPrice']});
-
-      }
-    });
-    // 팝업 창 닫기 (선택 모드로 전환)
-    window.close();
-  });
-  
-
+  selectElement.addEventListener('click', () => injectElementSelectionScript('prdNm'));
+  selectElement_sellPrice.addEventListener('click', () => injectElementSelectionScript('sellPrice'));
 });
 
-// uuid 여부 확인 및 없다면 생성
-document.addEventListener('DOMContentLoaded', function(): void {
-  const selectElement = document.getElementById('selectElement') as HTMLButtonElement;
-  const selectElement_sellPrice = document.getElementById('selectElement_sellPrice') as HTMLButtonElement;
-  
-
-  selectElement.addEventListener('click', function(): void {
-    // 현재 활성화된 탭에 스크립트 주입
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs: chrome.tabs.Tab[]): void {
-      if (tabs[0].id) {
-        chrome.scripting.executeScript({
-          target: {tabId: tabs[0].id},
-          func: startElementSelection,
-          args: ['prdNm']
-        });
-      }
-    });
-    // 팝업 창 닫기 (선택 모드로 전환)
-    window.close();
-  });
-
-  selectElement_sellPrice.addEventListener('click', function(): void {
-    // 현재 활성화된 탭에 스크립트 주입
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs: chrome.tabs.Tab[]): void {
-      if (tabs[0].id) {
-        chrome.scripting.executeScript({target: {tabId: tabs[0].id},func: startElementSelection,args: ['sellPrice']});
-
-      }
-    });
-    // 팝업 창 닫기 (선택 모드로 전환)
-    window.close();
-  });
-  
-});
 
 
 
 // popup.html 에서 저장된 요소 정보 확인 및 초기 정보 표시
-chrome.storage.local.get(['selectedElement', 'selectedElementType'], function(data: {selectedElement?: any, selectedElementType?: any}): void {
+// chrome.storage.local.get(['selectedElement', 'selectedElementType'], function(data: {selectedElement?: any, selectedElementType?: any}): void {
   
-  let selectedInfoDiv: HTMLDivElement | null = null;
-  let elementInfoPre: HTMLPreElement | null = null;
+//   let selectedInfoDiv: HTMLDivElement | null = null;
+//   let elementInfoPre: HTMLPreElement | null = null;
 
-  if (!data.selectedElement) return; // 메시지가 없으면 함수 종료
+//   if (!data.selectedElement) return; // 메시지가 없으면 함수 종료
 
-  if (data.selectedElement && data.selectedElementType === 'prdNm') {
-    selectedInfoDiv = document.getElementById('selectedInfo') as HTMLDivElement;
-    elementInfoPre = document.getElementById('elementInfo') as HTMLPreElement;
-  } else if (data.selectedElement && data.selectedElementType === 'sellPrice') {
-    selectedInfoDiv = document.getElementById('selectedInfo_sellPrice') as HTMLDivElement;
-    elementInfoPre = document.getElementById('elementInfo_sellPrice') as HTMLPreElement;
-  }
+//   if (data.selectedElement && data.selectedElementType === 'prdNm') {
+//     selectedInfoDiv = document.getElementById('selectedInfo') as HTMLDivElement;
+//     elementInfoPre = document.getElementById('elementInfo') as HTMLPreElement;
+//   } else if (data.selectedElement && data.selectedElementType === 'sellPrice') {
+//     selectedInfoDiv = document.getElementById('selectedInfo_sellPrice') as HTMLDivElement;
+//     elementInfoPre = document.getElementById('elementInfo_sellPrice') as HTMLPreElement;
+//   }
     
-    // 정보 표시
-  if (selectedInfoDiv && elementInfoPre) {
-    selectedInfoDiv.style.display = 'block';
-    elementInfoPre.textContent = JSON.stringify(data.selectedElement, null, 2);
-  }
+//     // 정보 표시
+//   if (selectedInfoDiv && elementInfoPre) {
+//     selectedInfoDiv.style.display = 'block';
+//     elementInfoPre.textContent = JSON.stringify(data.selectedElement, null, 2);
+//   }
     
-    // 사용 후 정보 삭제
-    chrome.storage.local.remove('selectedElement');
-});
+//     // 사용 후 정보 삭제
+//     chrome.storage.local.remove('selectedElement');
+// });
 
-
-chrome.storage.local.get(['userUUID', 'userId'], async function(data: {userUUID?: string, userId?: string}): Promise<void> {
+chrome.storage.local.get(['prdNm', 'sellPrice','userUUID', 'userId'], async function(data: {prdNm?: ElementInfo, sellPrice?: ElementInfo, userUUID?: string, userId?: string}): Promise<void> {
   let userUUID: HTMLDivElement = document.getElementById('userUUID') as HTMLDivElement;
+  let selectedInfoDiv: HTMLDivElement | null = null;
+  let elementInfo: HTMLPreElement | null = null;
+
 
   if (data.userUUID) {
     console.log('##### uuid:', data.userUUID);
@@ -150,7 +107,6 @@ chrome.storage.local.get(['userUUID', 'userId'], async function(data: {userUUID?
   } else {
     console.log('##### uuid: None');
     const result = await fetchPostApi('http://shopbuddy.kr:8080/api/uuid');
-    console.log('##### new uuid:', result.uuid);
     await chrome.storage.local.set({userUUID: result.uuid});
     userUUID.textContent = result.uuid;
   }
@@ -158,6 +114,29 @@ chrome.storage.local.get(['userUUID', 'userId'], async function(data: {userUUID?
   if (data.userId) {
     console.log('##### userId:', data.userId);
   }
+  
+  // const prdNm: ElementInfo | undefined = data.prdNm ? JSON.parse(data.prdNm) as ElementInfo : undefined;
+
+  if (data.prdNm) {
+      // selectedInfoDiv = document.getElementById('selectedInfo') as HTMLDivElement;
+      elementInfo = document.getElementById('elementInfo') as HTMLPreElement;
+   
+      console.log('prdNm.text:', data.prdNm.text);    
+      // selectedInfoDiv.style.display = 'block';
+      elementInfo.textContent = data.prdNm.text;
+      elementInfo.title = data.prdNm.text;
+    
+  }
+
+  if (data.sellPrice) {
+      // selectedInfoDiv = document.getElementById('selectedInfo_sellPrice') as HTMLDivElement;
+      elementInfo = document.getElementById('elementInfo_sellPrice') as HTMLPreElement;
+
+      // selectedInfoDiv.style.display = 'block';
+      elementInfo.textContent = data.sellPrice.text;
+      elementInfo.title = data.sellPrice.text;
+  }
+
 });
 
 
@@ -374,7 +353,6 @@ function clickedPageElement(e: MouseEvent, type: string): void {
     const element = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
     if (element) {
       
-                  
       const elementInfo: ElementInfo = {
         tagName: element.tagName,
         id: element.id,
@@ -399,7 +377,7 @@ function clickedPageElement(e: MouseEvent, type: string): void {
       });
     }
   }
-
+  
   function highlightElementUnderMouse(e: MouseEvent): void {
     e.preventDefault();
     const element = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
